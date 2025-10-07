@@ -177,83 +177,57 @@ def data_to_html(data):
         in_ol = False
         
         for item in section['content']:
-            if item['type'] == 'h4':  # Ändrat från h3 till h4
+            if item['type'] == 'h4':
                 if in_ul:
-                    content_html.append('        </ul>')
+                    content_html.append('</ul>')
                     in_ul = False
                 if in_ol:
-                    content_html.append('        </ol>')
+                    content_html.append('</ol>')
                     in_ol = False
-                content_html.append(f'        <h4>{item["text"]}</h4>')
+                content_html.append(f'<h4>{item["text"]}</h4>')
             
             elif item['type'] == 'oli':
                 if in_ul:
-                    content_html.append('        </ul>')
+                    content_html.append('</ul>')
                     in_ul = False
                 if not in_ol:
-                    content_html.append('        <ol>')
+                    content_html.append('<ol>')
                     in_ol = True
-                content_html.append(f'          <li>{item["text"]}</li>')
+                content_html.append(f'<li>{item["text"]}</li>')
             
             elif item['type'] == 'li':
                 if in_ol:
-                    content_html.append('        </ol>')
+                    content_html.append('</ol>')
                     in_ol = False
                 if not in_ul:
-                    content_html.append('        <ul>')
+                    content_html.append('<ul>')
                     in_ul = True
-                content_html.append(f'          <li>{item["text"]}</li>')
+                content_html.append(f'<li>{item["text"]}</li>')
             
             else:
                 if in_ul:
-                    content_html.append('        </ul>')
+                    content_html.append('</ul>')
                     in_ul = False
                 if in_ol:
-                    content_html.append('        </ol>')
+                    content_html.append('</ol>')
                     in_ol = False
-                content_html.append(f'        <p>{item["text"]}</p>')
+                content_html.append(f'<p>{item["text"]}</p>')
         
         if in_ul:
-            content_html.append('        </ul>')
+            content_html.append('</ul>')
         if in_ol:
-            content_html.append('        </ol>')
+            content_html.append('</ol>')
         
-        sections_html.append(f'''      <section id="{section_id}">
-        <h3>{section['title']}</h3>
+        sections_html.append(f'''<section id="{section_id}">
+<h3>{section['title']}</h3>
 {chr(10).join(content_html)}
-      </section>
+</section>
 ''')
     
-    html = f'''<!DOCTYPE html>
-<html lang="sv">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{data['h1']}</title>
-  
-  <style>
-    body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #111; margin: 0; }}
-    main {{ max-width: 72ch; margin: 0 auto; padding: 24px; }}
-    h2, h3, h4 {{ line-height: 1.25; }}
-    ul, ol {{ padding-left: 1.2rem; }}
-    .lead {{ font-size: 1.125rem; }}
-  </style>
-</head>
-<body>
-  <main>
-    <header>
-      <h2>{data['h1']}</h2>
-      <p class="lead">
-        {data['lead']}
-      </p>
-    </header>
-
-    <article>
-{''.join(sections_html)}
-    </article>
-  </main>
-</body>
-</html>'''
+    # Bara ren HTML, ingen <head>, <style> eller <body>
+    html = f'''<h2>{data['h1']}</h2>
+<p class="lead">{data['lead']}</p>
+{''.join(sections_html)}'''
     
     return html
 
