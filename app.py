@@ -21,7 +21,6 @@ def slugify(text):
 def get_numbering_format(para, doc):
     """Hämtar numreringsformatet från Word's numbering.xml"""
     try:
-        # Kolla om det finns numrering
         if para._element.pPr is None:
             return None
         
@@ -37,12 +36,10 @@ def get_numbering_format(para, doc):
         ilvl_element = numPr.ilvl
         ilvl = ilvl_element.val if ilvl_element is not None else 0
         
-        # Hämta numbering part
         numbering_part = doc.part.numbering_part
         if numbering_part is None:
             return 'bullet'
         
-        # Hitta num element
         num_element = None
         for num in numbering_part.element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}num'):
             if num.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}numId') == str(numId):
@@ -52,14 +49,12 @@ def get_numbering_format(para, doc):
         if num_element is None:
             return 'bullet'
         
-        # Hämta abstractNumId
         abstractNumId_element = num_element.find('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}abstractNumId')
         if abstractNumId_element is None:
             return 'bullet'
         
         abstractNumId = abstractNumId_element.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
         
-        # Hitta abstractNum
         abstractNum = None
         for anum in numbering_part.element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}abstractNum'):
             if anum.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}abstractNumId') == str(abstractNumId):
@@ -69,13 +64,11 @@ def get_numbering_format(para, doc):
         if abstractNum is None:
             return 'bullet'
         
-        # Hitta rätt level
         for lvl in abstractNum.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}lvl'):
             if lvl.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ilvl') == str(ilvl):
                 numFmt = lvl.find('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}numFmt')
                 if numFmt is not None:
                     fmt_val = numFmt.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val')
-                    # Kolla om det är decimal (1,2,3) eller bullet
                     if fmt_val in ['decimal', 'lowerLetter', 'upperLetter', 'lowerRoman', 'upperRoman']:
                         return 'numbered'
                     else:
@@ -89,7 +82,6 @@ def get_numbering_format(para, doc):
 def parse_docx(filepath):
     doc = Document(filepath)
     
-    # Extrahera metadata
     meta_title = ""
     meta_description = ""
     
@@ -111,8 +103,7 @@ def parse_docx(filepath):
         else:
             i += 1
     
-    # Parsa innehåll
-    h1 = ""
+    h1 = ""  # Blir H2 i HTML
     lead = ""
     sections = []
     current_section = None
@@ -129,11 +120,13 @@ def parse_docx(filepath):
         if "Vanliga frågor och svar" in text:
             break
         
+        # Heading 1 i Word → H2 i HTML
         if 'Heading 1' in style and not h1:
             h1 = text
             i += 1
             continue
         
+        # Heading 2 i Word → H3 i HTML
         if 'Heading 2' in style:
             if current_section and current_section['content']:
                 sections.append(current_section)
@@ -146,13 +139,13 @@ def parse_docx(filepath):
             i += 1
             continue
         
+        # Heading 3 i Word → H4 i HTML
         if 'Heading 3' in style and current_section is not None:
-            current_section['content'].append({'type': 'h3', 'text': text})
+            current_section['content'].append({'type': 'h4', 'text': text})
             i += 1
             continue
         
         if current_section is not None:
-            # Kolla numreringsformat
             numbering_format = get_numbering_format(para, doc)
             
             if numbering_format == 'numbered':
@@ -170,7 +163,7 @@ def parse_docx(filepath):
     return {
         'meta_title': meta_title,
         'meta_description': meta_description,
-        'h1': h1,
+        'h1': h1,  # Blir H2
         'lead': lead,
         'sections': sections
     }
@@ -184,14 +177,14 @@ def data_to_html(data):
         in_ol = False
         
         for item in section['content']:
-            if item['type'] == 'h3':
+            if item['type'] == 'h4':  # Ändrat från h3 till h4
                 if in_ul:
                     content_html.append('        </ul>')
                     in_ul = False
                 if in_ol:
                     content_html.append('        </ol>')
                     in_ol = False
-                content_html.append(f'        <h3>{item["text"]}</h3>')
+                content_html.append(f'        <h4>{item["text"]}</h4>')
             
             elif item['type'] == 'oli':
                 if in_ul:
@@ -226,7 +219,7 @@ def data_to_html(data):
             content_html.append('        </ol>')
         
         sections_html.append(f'''      <section id="{section_id}">
-        <h2>{section['title']}</h2>
+        <h3>{section['title']}</h3>
 {chr(10).join(content_html)}
       </section>
 ''')
@@ -241,7 +234,7 @@ def data_to_html(data):
   <style>
     body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #111; margin: 0; }}
     main {{ max-width: 72ch; margin: 0 auto; padding: 24px; }}
-    h1, h2, h3 {{ line-height: 1.25; }}
+    h2, h3, h4 {{ line-height: 1.25; }}
     ul, ol {{ padding-left: 1.2rem; }}
     .lead {{ font-size: 1.125rem; }}
   </style>
@@ -249,7 +242,7 @@ def data_to_html(data):
 <body>
   <main>
     <header>
-      <h1>{data['h1']}</h1>
+      <h2>{data['h1']}</h2>
       <p class="lead">
         {data['lead']}
       </p>
